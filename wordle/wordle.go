@@ -10,8 +10,8 @@ func init() {
 }
 
 func getWord() string {
-	index := rand.Intn(len(Words))
-	return Words[index]
+	index := rand.Intn(len(words))
+	return words[index]
 }
 
 type Wordle struct {

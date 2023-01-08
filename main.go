@@ -8,7 +8,6 @@ import (
 
 	"github.com/jroimartin/gocui"
 	"github.com/x2dtu/wordle/wordle"
-	"golang.org/x/exp/slices"
 )
 
 var currWordle *wordle.Wordle
@@ -126,7 +125,7 @@ func submitGuess(g *gocui.Gui, v *gocui.View) error {
 	if len(guess) != WORD_LEN {
 		return nil
 	}
-	if !slices.Contains(wordle.Words, guess) {
+	if !wordle.LegalWords[guess] {
 		turnRed(g, v)
 		return nil
 	}
@@ -237,7 +236,7 @@ func finishGame(v *gocui.View) {
 func outputDirections(v *gocui.View) {
 	fmt.Fprintln(v)
 	fmt.Fprintf(v, "Play Again: %sspace bar%s\n", CYAN, RESET)
-	fmt.Fprintf(v, "Quit: %s^C%s\n", CYAN, RESET)
+	fmt.Fprintf(v, "       Quit: %s^C%s\n", CYAN, RESET)
 }
 
 func handleBackspace(g *gocui.Gui, v *gocui.View) error {
