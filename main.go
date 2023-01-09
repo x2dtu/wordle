@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"unicode"
 
@@ -34,11 +35,22 @@ func main() {
 }
 
 func layout(g *gocui.Gui) error {
+	// initialize y position variables for views
+	startTitleY, endTitleY := 0, 2
+	startDescriptionY, endDescriptionY := endTitleY, endTitleY+2
+	startInputY, endInputY := endDescriptionY+2, endDescriptionY+17
+	startKeyboardY := endInputY + 1
+	endKeyboardY := startKeyboardY + 6
+
 	maxX, maxY := g.Size()
+	if maxY < endKeyboardY {
+		fmt.Println("Your terminal height is too small to play Wordle")
+		os.Exit(0)
+	}
 
 	title := "Wordle"
-	endTitleY := 2
-	if v, err := g.SetView("title", maxX/2-len(title)/2, 0, maxX/2+len(title), endTitleY); err != nil {
+
+	if v, err := g.SetView("title", maxX/2-len(title)/2, startTitleY, maxX/2+len(title), endTitleY); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -46,15 +58,16 @@ func layout(g *gocui.Gui) error {
 		fmt.Fprintln(v, title)
 	}
 	description := "Guess the Hidden Word!"
-	endDescriptionY := endTitleY + 2
-	if v, err := g.SetView("description", maxX/2-len(description)/2, endTitleY, maxX+len(description)/2, endDescriptionY); err != nil {
+
+	if v, err := g.SetView("description", maxX/2-len(description)/2, startDescriptionY, maxX+len(description)/2, endDescriptionY); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		v.Frame = false
 		fmt.Fprintln(v, description)
 	}
-	if v, err := g.SetView("input", maxX/2-11, endDescriptionY+2, maxX/2+11, maxY/2+2); err != nil {
+
+	if v, err := g.SetView("input", maxX/2-11, startInputY, maxX/2+11, endInputY); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -65,7 +78,20 @@ func layout(g *gocui.Gui) error {
 		writeBlankLines(v)
 		v.SetCursor(WORD_START, 0)
 	}
+
+	if v, err := g.SetView("keyboard", maxX/2-len(KEYBOARD_START)/2-1, startKeyboardY, maxX/2+len(KEYBOARD_START)/2+1, endKeyboardY); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Frame = false
+		printKeyboard(v)
+	}
+
 	return nil
+}
+
+func printKeyboard(v *gocui.View) {
+	fmt.Fprint(v, strings.Join(COLORED_KEYBOARD[:], "  "))
 }
 
 func colorLetters(guess string, target string) string {
@@ -89,6 +115,9 @@ func colorLetters(guess string, target string) string {
 			color_array[index] = GREEN + string(char)
 			target_map[char]-- // we 'move' the char from target to color array
 		}
+
+		// update keyboard to show this character as green
+		updateCharInKeyboard(char, GREEN)
 	}
 
 	// get remaining yellow and white letters now
@@ -104,14 +133,31 @@ func colorLetters(guess string, target string) string {
 			color_array[index] = YELLOW + string(char)
 			// decrement the value in map
 			target_map[char]--
+
+			// update keyboard to show this character as yellow
+			updateCharInKeyboard(char, YELLOW)
 		} else {
 			// then make this rune white
 			color_array[index] = RESET + string(char)
+
+			// update keyboard to show this character as gray
+			updateCharInKeyboard(char, GRAY)
 		}
 	}
 
 	// join all the strings with RESET at end to make sure future text is white
 	return SPACE + strings.Join(color_array, "") + RESET
+}
+
+// changes color of the specified character in the visual keyboard
+func updateCharInKeyboard(char rune, color string) {
+	original_char_str := KEYBOARD[KEYBOARD_POSITIONS[char-'a']]
+	COLORED_KEYBOARD[KEYBOARD_POSITIONS[char-'a']] = color + original_char_str + RESET
+}
+
+func updateKeyboard(v *gocui.View) {
+	v.Clear()
+	printKeyboard(v)
 }
 
 func submitGuess(g *gocui.Gui, v *gocui.View) error {
@@ -122,11 +168,7 @@ func submitGuess(g *gocui.Gui, v *gocui.View) error {
 		return err
 	}
 	// if this isn't a real word, don't submit the guess
-	if len(guess) != WORD_LEN {
-		return nil
-	}
-	if !wordle.LegalWords[guess] {
-		turnRed(g, v)
+	if len(guess) != WORD_LEN || currWordle.EnteredGibberish {
 		return nil
 	}
 
@@ -176,6 +218,12 @@ func submitGuess(g *gocui.Gui, v *gocui.View) error {
 		fmt.Fprintf(v, "%s%s\n", SPACE, currWordle.Target)
 		outputDirections(v)
 	}
+	// update keyboard
+	keyboard_view, err := g.View("keyboard")
+	if err != nil {
+		log.Panic("No view named keyboard")
+	}
+	updateKeyboard(keyboard_view)
 
 	g.Update(layout)
 	return nil
@@ -265,6 +313,17 @@ func handleCharacter(char rune) func(g *gocui.Gui, v *gocui.View) error {
 			v.EditDelete(false)
 			v.EditWrite(unicode.ToLower(char))
 			v.SetCursor(x+1, y)
+
+			untrimmedGuess, err := v.Line(currWordle.Guesses)
+			if err != nil {
+				log.Panic()
+			}
+			guess := strings.Trim(untrimmedGuess, " _")
+
+			// if this isn't a real word, turn word red
+			if len(guess) == WORD_LEN && !wordle.LegalWords[guess] {
+				turnRed(g, v)
+			}
 		}
 		return nil
 	}
@@ -319,11 +378,13 @@ func keybindings(g *gocui.Gui) error {
 			return err
 		}
 	}
-	if err := g.SetKeybinding("input", gocui.KeyDelete, gocui.ModNone, doNothing); err != nil {
-		return err
-	}
 	if err := g.SetKeybinding("input", gocui.KeySpace, gocui.ModNone, handleSpace); err != nil {
 		return err
+	}
+	for _, key := range []interface{}{gocui.KeyDelete, gocui.KeyArrowDown, gocui.KeyArrowUp, gocui.KeyArrowLeft, gocui.KeyArrowRight} {
+		if err := g.SetKeybinding("input", key, gocui.ModNone, doNothing); err != nil {
+			return err
+		}
 	}
 	for _, c := range "1234567890~!@#$%^&*()-_+=[]\\{}|;':\",./<>?" {
 		if err := g.SetKeybinding("", c, gocui.ModNone, doNothing); err != nil {
