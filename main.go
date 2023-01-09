@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -12,8 +13,12 @@ import (
 )
 
 var currWordle *wordle.Wordle
+var forcedLayout bool
 
 func main() {
+	flag.BoolVar(&forcedLayout, "f", false, "force game to play even with invalid terminal size")
+	flag.Parse()
+
 	currWordle = wordle.New()
 
 	g, err := gocui.NewGui(gocui.OutputNormal)
@@ -43,8 +48,10 @@ func layout(g *gocui.Gui) error {
 	endKeyboardY := startKeyboardY + 6
 
 	maxX, maxY := g.Size()
-	if maxY < endKeyboardY {
-		fmt.Println("Your terminal height is too small to play Wordle")
+	if maxY < endKeyboardY && !forcedLayout {
+		fmt.Println("Your terminal height is too small to play Wordle.")
+		fmt.Println("Try increasing the height and try again!")
+		fmt.Println("Or, run with the -f flag to force a play session.")
 		os.Exit(0)
 	}
 
