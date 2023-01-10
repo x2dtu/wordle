@@ -15,3 +15,10 @@ If your terminal screen is too short to accurately display the game, the program
 ![image](https://user-images.githubusercontent.com/82241006/211663159-3e9da29b-84b3-45bb-843b-9a8d2354160e.png)
 <br/>
 As told in the message above, you can run the application with ``go run . -f`` to force the game to run at any resolution, even if the terminal height is too small. 
+
+## Setup Instructions
+1. First, download the source code, either by executing a `git clone https://github.com/x2dtu/wordle.git` in a terminal or downloading the project as a zip through the Github page and extracting that zip.
+2. This project uses Go to run, so make sure to have it installed on your computer before you try to run this. <br>
+In a terminal at the project directory,
+3. Run `git mod tidy` to install the necessary packages.
+4. Run `go run . [-f]` to start the app. Enjoy!
