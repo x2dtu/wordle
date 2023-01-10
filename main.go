@@ -351,6 +351,15 @@ func handleSpace(g *gocui.Gui, v *gocui.View) error {
 		v.Clear()
 		currWordle = wordle.New()
 		writeBlankLines(v)
+
+		// update keyboard
+		keyboard_view, err := g.View("keyboard")
+		if err != nil {
+			log.Panic("No view named keyboard")
+		}
+		initKeyboard()
+		updateKeyboard(keyboard_view)
+
 		v.SetCursor(WORD_START, 0)
 		g.Update(layout)
 	}
