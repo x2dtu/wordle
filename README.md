@@ -1,0 +1,8 @@
+# Wordle
+This is a Wordle game I made using Go. Instead of a normal GUI design that I have usually done for my other projects, I decided to change things up and create a CUI (Character User Interface). So, the game is interacted with using a command line terminal, which makes use of the [gocui](https://pkg.go.dev/github.com/jroimartin/gocui@v0.5.0) package in Go. It has all the features of the New York Times' Wordle and more. I always wanted to remake Wordle as I usually play it every day; I believe it's a fun way to start the morning. I've wanted to also learn Go for some time now, so this gave me a great opportunity to code in a language like Go on a project I've wanted to work on for some time - Win Win! As always, please email me at 3069391@gmail.com or comment on this project page should you have any questions about the game, suggestions for further improvement, or have found any bugs.
+
+## Screenshots
+Starting the application with ``go run .`` will change the terminal to look like this: <br/>
+<img src="https://user-images.githubusercontent.com/82241006/211656749-666580b0-537d-4c62-9d81-182edcbed5ca.png" alt="wordle" height="500"/> <br/>
+On this gif below, notice how gibberish words are highlighted in red as soon as they are written out. Pressing `enter` when a gibberish word or word less than 5 characters long will do nothing. As per the wordle rules, letters in the correct spots will show as green when submitted, yellow if they are in the word but not in the correct spot, and gray if they are not in the word. The keyboard at the bottom of the screen also mirrors this.  <br/>
+<img>
